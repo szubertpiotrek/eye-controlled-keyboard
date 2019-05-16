@@ -34,7 +34,7 @@ def cvDrawBoxes(detections, img):
             detection[2][2],\
             detection[2][3]
         xmin, ymin, xmax, ymax = convertBack(
-            float(x), float(y), float(w), float(h))
+            float(3.07*x), float(1.73*y), float(3.07*w), float(1.73*h))
         pt1 = (xmin, ymin)
         pt2 = (xmax, ymax)
         cv2.rectangle(img, pt1, pt2, (0, 255, 0), 1)
@@ -83,11 +83,12 @@ def eyeGazeTacking():
         except Exception:
             pass
 
+    kalman = cv2.KalmanFilter(2, 1, 0)
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     cap.set(3, 1280)
     cap.set(4, 720)
-    cap.set(cv2.CAP_PROP_FPS, 30)
+    cap.set(cv2.CAP_PROP_FPS, 60)
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -97,7 +98,7 @@ def eyeGazeTacking():
     while True:
         stime = time.time()
         ret, image = cap.read()
-
+        keyboard = np.zeros((560,1000,3), np.uint8)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         faces = detector(gray)
 
@@ -188,17 +189,40 @@ def eyeGazeTacking():
             darknet.copy_image_from_bytes(darknet_image, color_eye.tobytes())
 
             detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=0.25)
-            _, xmin, ymin, xmax, ymax = cvDrawBoxes(detections, color_eye)
+            _, xmin, ymin, xmax, ymax = cvDrawBoxes(detections, image)
             xsr = int(round(xmin + ((xmax-xmin)/2)))
             ysr = int(round(ymin + ((ymax-ymin)/2)))
-            cv2.line(color_eye, (int(round(left_point1[0]/3.07)), int(round(left_point1[1]/1.73))), (int(round(right_point1[0]/3.07)), int(round(right_point1[1]/1.73))), (0, 0, 255), 2)
-            cv2.line(color_eye, (int(round(srodek_gora_prawe[0]/3.07)), int(round(srodek_gora_prawe[1]/1.73))), (int(round(srodek_dol_prawe[0]/3.07)),int(round(srodek_dol_prawe[1]/1.73))), (0, 0, 255), 2)
-            cv2.circle(color_eye, (xsr, ysr), 4, (255, 0, 0), 4)
-            color_eye = cv2.cvtColor(color_eye, cv2.COLOR_BGR2RGB)
+            cv2.line(image, (int(round(left_point1[0])), int(round(left_point1[1]))), (int(round(right_point1[0])), int(round(right_point1[1]))), (0, 0, 255), 2)
+            cv2.line(image, (int(round(srodek_gora_prawe[0])), int(round(srodek_gora_prawe[1]))), (int(round(srodek_dol_prawe[0])),int(round(srodek_dol_prawe[1]))), (0, 0, 255), 2)
+            cv2.circle(image, (xsr, ysr), 4, (255, 0, 0), 4)
+            # color_eye = cv2.cvtColor(color_eye, cv2.COLOR_BGR2RGB)
+            print(ver_line_lenght)
+            print(hor_line_lenght)
+            # proportial_ratio_x = 1000/1280*15
+            # proportial_ratio_y = 560/720*30
+            # cv2.line(keyboard, (int(round((srodek_gora_prawe[0]-left_point1[0])*proportial_ratio_x)), int(round((srodek_gora_prawe[1]-srodek_gora_prawe[1])*proportial_ratio_y))),
+            #          (int(round((srodek_dol_prawe[0]-left_point1[0])*proportial_ratio_x)), int(round((srodek_dol_prawe[1]-srodek_gora_prawe[1])*proportial_ratio_y))), (0, 0, 255), 2)
+            # cv2.line(keyboard, (int((round(left_point1[0]-left_point1[0])*proportial_ratio_x)), int(round((left_point1[1]-srodek_gora_prawe[1])*proportial_ratio_y))),
+            #          (int(round((right_point1[0]-left_point1[0])*proportial_ratio_x)), int(round((right_point1[1]-srodek_gora_prawe[1])*proportial_ratio_y))), (0, 0, 255), 2)
+            #
+            # cv2.circle(keyboard, (int(round((xsr-left_point1[0])*proportial_ratio_x)), int(round((ysr-srodek_gora_prawe[1])*proportial_ratio_y))), 4, (255, 0, 0), 4)
 
-            cv2.imshow("Eyess", color_eye)
+            proportial_ratio_x = hor_line_lenght/1000
+            proportial_ratio_y = ver_line_lenght/560
+            cv2.line(keyboard, (int(round((srodek_gora_prawe[0] - left_point1[0])/proportial_ratio_x)),
+                                int(round((srodek_gora_prawe[1] - srodek_gora_prawe[1])/proportial_ratio_y))),
+                     (int(round((srodek_dol_prawe[0] - left_point1[0])/proportial_ratio_x)),
+                      int(round((srodek_dol_prawe[1] - srodek_gora_prawe[1])/proportial_ratio_y))), (0, 0, 255), 2)
+            cv2.line(keyboard, (int((round(left_point1[0] - left_point1[0])/proportial_ratio_x)),
+                                int(round((left_point1[1] - srodek_gora_prawe[1])/proportial_ratio_y))),
+                     (int(round((right_point1[0] - left_point1[0])/proportial_ratio_x)),
+                      int(round((right_point1[1] - srodek_gora_prawe[1])/proportial_ratio_y))), (0, 0, 255), 2)
 
-        cv2.imshow("Frame", gray)
+            cv2.circle(keyboard, (int(round((xsr- left_point1[0])/proportial_ratio_x)),
+                                  int(round((ysr - srodek_gora_prawe[1])/proportial_ratio_y))), 4, (255, 0, 0), 4)
+
+        cv2.imshow("Eyess", image)
+        cv2.imshow("Keyboard", keyboard)
 
         print('FPS {:.1f}'.format(1 / (time.time() - stime)))
 

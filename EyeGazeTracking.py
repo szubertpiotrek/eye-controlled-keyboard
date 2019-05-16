@@ -22,6 +22,8 @@ while (True):
     frame = cv2.flip(frame, 1)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+    keyboard = np.zeros((1000, 1500, 3),np.uint8)
+
     faces = detector(gray)
     for face in faces:
         # x, y = face.left(), face.top()
@@ -114,7 +116,7 @@ while (True):
         cv2.imshow("Eyess", gray_eye)
 
     cv2.imshow("Frame", frame)
-
+    cv2.imshow("Keyboard", keyboard)
     key = cv2.waitKey(1)
     if key == 27:
         break
