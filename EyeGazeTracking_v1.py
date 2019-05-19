@@ -83,7 +83,29 @@ def eyeGazeTacking():
         except Exception:
             pass
 
-    kalman = cv2.KalmanFilter(2, 1, 0)
+    kalman = cv2.KalmanFilter(4, 2, 0)
+
+    measurement = np.array((2, 1), np.float32)
+
+    kalman.statePre[0] = 500
+    kalman.statePre[1] = 280
+    kalman.statePre[2] = 0
+    kalman.statePre[3] = 0
+
+    kalman.transitionMatrix = np.array([[1, 0, 1, 0],
+                                        [0, 1, 0, 1],
+                                        [0, 0, 1, 0],
+                                        [0, 0, 0, 1]], np.float32)
+    kalman.measurementMatrix = np.array([[1, 0, 0, 0],
+                                         [0, 1, 0, 0]], np.float32)
+    cv2.setIdentity(kalman.processNoiseCov, 1e-5)
+    cv2.setIdentity(kalman.measurementNoiseCov, 1e-1)
+    cv2.setIdentity(kalman.errorCovPost, 1)
+    cv2.randn(kalman.statePost, 0, 0.1)
+
+    eyev = []
+    kalmanv = []
+
 
     cap = cv2.VideoCapture(1)
     cap.set(3, 1280)
@@ -104,6 +126,9 @@ def eyeGazeTacking():
 
 
         for face in faces:
+
+            prediction = kalman.predict()
+            predict_pt = (prediction[0], prediction[1])
 
             # x, y = face.left(), face.top()
             # x1, y1 = face.right(), face.bottom()
@@ -220,6 +245,26 @@ def eyeGazeTacking():
 
             cv2.circle(keyboard, (int(round((xsr- left_point1[0])/proportial_ratio_x)),
                                   int(round((ysr - srodek_gora_prawe[1])/proportial_ratio_y))), 4, (255, 0, 0), 4)
+
+            measurement[0] = int(round((xsr- left_point1[0])/proportial_ratio_x))
+            measurement[1] = int(round((ysr - srodek_gora_prawe[1])/proportial_ratio_y))
+
+            estimated = kalman.correct(measurement)
+
+            state_pt = (estimated[0], estimated[1])
+            meas_pt = (measurement[0], measurement[1])
+
+            eyev.append(meas_pt)
+            kalmanv.append(state_pt)
+
+            cv2.circle(keyboard, (meas_pt[0], meas_pt[1]), 5, (0, 255, 0), 1)
+            cv2.circle(keyboard, (predict_pt[0], predict_pt[1]), 5, (0, 0, 255), 1)
+
+            for i in range(len(eyev) - 1):
+                cv2.line(keyboard, eyev[i], eyev[i + 1], (255, 0, 0), 1)
+
+            for i in range(len(kalmanv) - 1):
+                cv2.line(keyboard, kalmanv[i], kalmanv[i + 1], (0, 155, 255), 1)
 
         cv2.imshow("Eyess", image)
         cv2.imshow("Keyboard", keyboard)
